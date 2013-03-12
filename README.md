@@ -1,5 +1,6 @@
 phergie-plugins
 ===============
+Just my collection of random plugins for phergie, the PHP IRC bot.
 
 Quote
 -----
