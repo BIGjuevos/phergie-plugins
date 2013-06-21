@@ -12,13 +12,15 @@ class Phergie_Plugin_P2Pool extends Phergie_Plugin_Abstract {
 	private $_nextBlockCheck = 0;
 	private $_nextSpeedCheck = 0;
 
-    /**
-     * Let's do some magic
-     *
-     * @return void
-     */
-    public function onTick() {
+	/**
+	 * Let's do some magic
+	 *
+	 * @return void
+	 */
+	public function onTick() {
 		$time = time();
+
+		try {
 
 		if ( $this->_nextBlockCheck <= $time ) {
 			$this->checkBlocks();
@@ -29,7 +31,11 @@ class Phergie_Plugin_P2Pool extends Phergie_Plugin_Abstract {
 			$this->checkSpeed();
 			$this->_nextSpeedCheck = time() + $this->getConfig('p2pool.speed_interval');
 		}
-    }
+
+		} catch (Exception $e) {
+			//well, something went wrong, catch it so phergie doesn't die
+		}
+	}
 
 	public function onPrivMsg() {
 		switch ( $this->getEvent()->getArgument(1) ) {
@@ -53,7 +59,7 @@ class Phergie_Plugin_P2Pool extends Phergie_Plugin_Abstract {
 		foreach ( $blocks as $block ) {
 			if ( !in_array($block->hash, $existingBlocks) ) {
 				$this->doPrivMsg($this->getConfig('p2pool.channel'), 
-					"NEW BLOCK [{$block->number}] has been found!");
+						"NEW BLOCK [{$block->number}] has been found!");
 				$existingBlocks[] = $block->hash;
 			}
 		}
@@ -68,7 +74,14 @@ class Phergie_Plugin_P2Pool extends Phergie_Plugin_Abstract {
 		$localStats = file_get_contents( $this->getConfig('p2pool.url') . "local_stats");
 		$localStats = json_decode($localStats);
 
+		$localRate = 0;
+		foreach ($localStats->miner_hash_rates as $rate) {
+			$localRate += $rate;
+		}
+
 		$this->doPrivMsg( $this->getConfig('p2pool.channel'),
-			"Pool Hash Rate: " . round($stats->pool_hash_rate / 1000, 2) . "kH/s");
+				"Pool Hash Rate: " . round($stats->pool_hash_rate / 1000, 2) . "kH/s  " .
+				"Local Hash Rate: " . round($localRate / 1000, 2) . "kH/s  " .
+				"Efficiency Rate: " . round($localStats->efficiency, 2) );
 	}
 }
