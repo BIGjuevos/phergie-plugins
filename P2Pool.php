@@ -49,7 +49,7 @@ class Phergie_Plugin_P2Pool extends Phergie_Plugin_Abstract {
 	private function checkBlocks() {
 		$pools = $this->getConfig('p2pool.pools');
 		foreach ($pools as $currency => $url) {
-			$blocks = file_get_contents( $this->getConfig($url) . "recent_blocks");
+			$blocks = file_get_contents( $url . "recent_blocks");
 
 			$blocks = json_decode($blocks);
 
@@ -73,10 +73,10 @@ class Phergie_Plugin_P2Pool extends Phergie_Plugin_Abstract {
 	private function checkSpeed() {
 		$pools = $this->getConfig('p2pool.pools');
 		foreach ($pools as $currency => $url ) {
-			$stats = file_get_contents( $this->getConfig($url) . "global_stats");
+			$stats = file_get_contents( $url . "global_stats");
 			$stats = json_decode($stats);
 
-			$localStats = file_get_contents( $this->getConfig($url) . "local_stats");
+			$localStats = file_get_contents( $url . "local_stats");
 			$localStats = json_decode($localStats);
 
 			$localRate = 0;
