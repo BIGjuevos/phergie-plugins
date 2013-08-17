@@ -47,41 +47,48 @@ class Phergie_Plugin_P2Pool extends Phergie_Plugin_Abstract {
 	}
 
 	private function checkBlocks() {
-		$blocks = file_get_contents( $this->getConfig('p2pool.url') . "recent_blocks");
+		$pools = $this->getConfig('p2pool.pools');
+		foreach ($pools as $currency => $url) {
+			$blocks = file_get_contents( $this->getConfig($url) . "recent_blocks");
 
-		$blocks = json_decode($blocks);
+			$blocks = json_decode($blocks);
 
-		if ( !file_exists( $this->getConfig('p2pool.storage') . "phergie-p2pool.dat" ) ) {
-			touch( $this->getConfig('p2pool.storage') . "phergie-p2pool.dat" );
-		}
-		$existingBlocks = explode("\n", file_get_contents( $this->getConfig('p2pool.storage') . "phergie-p2pool.dat") );
-
-		foreach ( $blocks as $block ) {
-			if ( !in_array($block->hash, $existingBlocks) ) {
-				$this->doPrivMsg($this->getConfig('p2pool.channel'), 
-						"NEW BLOCK [{$block->number}] has been found!");
-				$existingBlocks[] = $block->hash;
+			if ( !file_exists( $this->getConfig('p2pool.storage') . "phergie-p2pool.dat" ) ) {
+				touch( $this->getConfig('p2pool.storage') . "phergie-p2pool.dat" );
 			}
-		}
+			$existingBlocks = explode("\n", file_get_contents( $this->getConfig('p2pool.storage') . "phergie-p2pool.dat") );
 
-		file_put_contents($this->getConfig('p2pool.storage') . "phergie-p2pool.dat", implode("\n", $existingBlocks) );
+			foreach ( $blocks as $block ) {
+				if ( !in_array($block->hash, $existingBlocks) ) {
+					$this->doPrivMsg($this->getConfig('p2pool.channel'), 
+							"NEW BLOCK $currency [{$block->number}] has been found!");
+					$existingBlocks[] = $block->hash;
+				}
+			}
+
+			file_put_contents($this->getConfig('p2pool.storage') . "phergie-p2pool.dat", implode("\n", $existingBlocks) );
+		}
 	}
 
 	private function checkSpeed() {
-		$stats = file_get_contents( $this->getConfig('p2pool.url') . "global_stats");
-		$stats = json_decode($stats);
+		$pools = $this->getConfig('p2pool.pools');
+		foreach ($pools as $currency => $url ) {
+			$stats = file_get_contents( $this->getConfig($url) . "global_stats");
+			$stats = json_decode($stats);
 
-		$localStats = file_get_contents( $this->getConfig('p2pool.url') . "local_stats");
-		$localStats = json_decode($localStats);
+			$localStats = file_get_contents( $this->getConfig($url) . "local_stats");
+			$localStats = json_decode($localStats);
 
-		$localRate = 0;
-		foreach ($localStats->miner_hash_rates as $rate) {
-			$localRate += $rate;
+			$localRate = 0;
+			foreach ($localStats->miner_hash_rates as $rate) {
+				$localRate += $rate;
+			}
+
+			$this->doPrivMsg( $this->getConfig('p2pool.channel'),
+					"$currency " . 
+					"Pool Hash Rate: " . round($stats->pool_hash_rate / 1000, 2) . "kH/s  " .
+					"Local Hash Rate: " . round($localRate / 1000, 2) . "kH/s  " .
+					"Efficiency Rate: " . round($localStats->efficiency, 2) );
 		}
-
-		$this->doPrivMsg( $this->getConfig('p2pool.channel'),
-				"Pool Hash Rate: " . round($stats->pool_hash_rate / 1000, 2) . "kH/s  " .
-				"Local Hash Rate: " . round($localRate / 1000, 2) . "kH/s  " .
-				"Efficiency Rate: " . round($localStats->efficiency, 2) );
 	}
 }
